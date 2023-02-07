@@ -1,6 +1,6 @@
 # DİYABET HASTALIĞI  
 
-Yapay sinir ağları çalışırken kaggle sitesinden yararlandığımız "Predict Diabetes" veri seti üzerine çalışmalar gerçekleştirilmiştir.
+Yapay sinir ağları ile kaggle sitesinden yararlandığımız "Predict Diabetes" veri seti üzerine çalışmalar gerçekleştirilmiştir.
 
 ### VERİ SETİ AÇIKLAMASI:
 
