@@ -4,7 +4,7 @@ Yapay sinir ağları ile kaggle sitesinden yararlandığımız "Predict Diabetes
 
 Veri setinin amacı, bir hastanın diyabet hastası olup olmadığını veri kümesinde yer alan belirli tanılama ölçümlerine dayanarak tanısal olarak tahmin etmektir.
 
-### VERİ SETİ AÇIKLAMASI:
+### VERİ SETİ AÇIKLAMASI
 
 Bu veri seti aslen Ulusal Diyabet ve Sindirim ve Böbrek Hastalıkları Enstitüsü'nden alınmıştır.
 
