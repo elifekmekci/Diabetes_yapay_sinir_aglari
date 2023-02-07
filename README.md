@@ -12,7 +12,7 @@ Yaygın olarak diyabet olarak adlandırılan diabetes mellitus (DM), uzun bir s�
 
 (Kaynak: https://<https://www.kaggle.com/datasets/whenamancodes/predict-diabities>)
 
-### DEĞİŞKENLER:
+### DEĞİŞKENLER
 
 | Değişkenler|Açıklaması| 
 |------:|:-----|
