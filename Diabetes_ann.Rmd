@@ -1,0 +1,478 @@
+---
+title: "Yapay Sinir Ağları ile Sınıflandırma Problemi"
+author: "ELİF EKMEKCİ"
+date: "2023-02-07"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## ÖRNEK 1: Yapay Sinir Ağları ile Sınıflandırma Probleminin Çözülmesi
+
+Bu örnekte yapay sinir ağları çalışırken kaggle sitesinden yararlandığımız "Predict Diabetes" veri seti üzerine çalışmalar gerçekleştirilmiştir.
+
+### VERİ SETİ AÇIKLAMASI;
+
+Bu veri seti aslen Ulusal Diyabet ve Sindirim ve Böbrek Hastalıkları Enstitüsü'nden alınmıştır.
+
+Veri setinin amacı, bir hastanın diyabet hastası olup olmadığını veri kümesinde yer alan belirli tanılama ölçümlerine dayanarak tanısal olarak tahmin etmektir.
+
+Yaygın olarak diyabet olarak adlandırılan diabetes mellitus (DM), uzun bir süre boyunca yüksek kan şekeri seviyelerinin olduğu bir grup metabolik bozukluktur. Tip 1 diyabet, pankreasın yeterli insülin üretememesinden kaynaklanır. Tip 2 diyabet, hücrelerin insüline düzgün yanıt vermediği bir durum olan insülin direnci ile başlar. 2015 itibariyle, dünya çapında tahmini 415 milyon insanda diyabet vardı ve vakaların yaklaşık % 90'ını tip 2 diyabet oluşturuyordu. Bu, yetişkin nüfusun% 8,3'ünü temsil etmektedir.
+
+(Kaynak: https://<https://www.kaggle.com/datasets/whenamancodes/predict-diabities>)
+
+### DEĞİŞKENLER:
+
+| Değişkenler|Açıklaması| 
+|------:|:-----|
+|  Pregnancies |  Gebelik sayısını ifade eder |  
+|  Glucose  |  Kandaki glikoz seviyesini ifade eder |  
+|    BloodPressure |    Kan basıncı ölçümünü ifade eder |  
+|   SkinThickness |  Cildin kalınlığını ifade eder  |  
+|  Insulin |  Kandaki insülin seviyesini ifade eder |  
+|   BMI  |    Vücut kitle indeksini ifade eder | 
+|   DiabetesPedigreeFunction  |  Diyabet yüzdesini ifade eder |  
+|  Age |  Yaşını ifade eder |  
+|    Outcome  |    Nihai sonucu ifade etmek için 1 Evet ve 0 Hayır|
+
+
+### 1.ADIM: Kullanılan Paketlerin Yüklenmesi ve Aktifleştirilmesi
+
+### KULLANILAN PAKETLER
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(readr)
+library(dplyr)
+library(corrr)
+library(ggcorrplot)
+library(PerformanceAnalytics)
+library(GGally)
+library(tidyr)
+library(ggplot2)
+library(neuralnet)
+```
+
+### 2.ADIM: Veri Yükleme ve Düzenleme
+
+* Öncelikle verimizi yükleyelim ve diabetes_data isimi ile tanımlayalım:
+
+```{r message=FALSE, warning=FALSE}
+set.seed(121519016) # Rastgele sayı üretme fonksiyonudur. 
+#Rastgele seçimleri başlatmak için kullanır.
+diabetes_data <- read_csv("/Users/elif/Desktop/diabetes.csv")
+head(diabetes_data)
+```
+
+### 3.ADIM: Veri Keşfi
+
+* Veri türlerini glimpse() ile kontrol edelim:
+
+```{r}
+glimpse(diabetes_data)
+```
+
+* Verimizin özet istatistiklerini inceleyelim:
+
+```{r}
+summary(diabetes_data)
+```
+
+**Age** değişkenini inceleyelim:
+
+> * Minimum değerin 21.00 ve maksimum değerin ise 81.00 olduğunu görüyoruz.
+
+> * İlk çeyreği (1st Qu.) 24.00'dır.Bu da tüm kayıtların %25'inin Age değerinin 24.00'ın altında olduğunu gösterir. 
+
+> * Benzer şekilde üçüncü çeyrekte (3rd Qu.) 41.00 değeri tüm kayıtların %75'inin Age değerinin 41.00 'nin altında olduğunu gösterir. 
+
+> * Age değerinin ortalaması ise bize aritmetik ortalamayı gösterir ve 33.24 olarak hesaplandığı görülür.
+
+Verimizde missing gozlemler var mi yok mu apply komutuyla kontrol etmeliyiz; 
+```{r}
+apply(diabetes_data,2,function(x) sum(is.na(x))) 
+```
+
+Eksik gözlemlere bakıldığında eksik veri görülmemiştir. 
+Bu işlemi yaparken apply fonksinoyu kullanılmıştır.(Her değişkenin altında yazan değer,o değişkende kaç eksik gözlem olduğunu gösterir.)
+
+
+* Korelasyon değerleri araştıralım:
+
+Öncelikle tahmin edilecek olan hedef değişkenin açıklayıcı değişkenlerle olan ilişkisine bakalım:
+
+```{r message=FALSE, warning=FALSE}
+diabetes_data %>% correlate() %>% focus(Outcome)
+```
+
+Korelasyon değerleri incelendiğinde:
+
+> - Pregnancies,Glucose,BMI ve Age değişkenleri ile hedef değişken Outcome arasında pozitif bir korelasyon vardır.
+
+> - BloodPressure,SkinThickness,Insulin ve DiabetesPedigreeFunction değişkenleri ile hedef değişken Outcome arasında düşük bir pozitif korelasyon vardır.
+
+> - Değişkenler ile hedef değişken Outcome arasında negatif bir korelasyon yoktur.
+
+
+Değişkenler arasındaki korelasyonu görsel olarak incelemek istersek:
+
+```{r}
+diabet_cor <- cor(diabetes_data, use="complete.obs")
+
+ggcorrplot(diabet_cor, 
+           hc.order = TRUE, 
+           type = "lower",
+           lab = TRUE)
+```
+
+* İkinci olarak, açıklayıcı değişkenler arasındaki doğrusal ilişkinin ölçütleri olan ikili korelasyon değerlerini gözden geçirelim:
+
+```{r message=FALSE, warning=FALSE}
+chart.Correlation(diabetes_data[,-9],histogram = TRUE,pch = 19)
+```
+
+Grafiği incelediğimizde,
+
+* En yüksek pozitif korelasyonlar:
+
+> - 0.54 ile Pregnancies ve Age değişkenleri arasında
+
+> - 0.44 ile SkinThickness ve Insulin değişkenleri arasında
+
+> - 0.39 ile SkinThickness ve BMI değişkenleri arasında 
+
+*  Negatif korelasyonlar:
+
+> -  -0.11 ile SkinThickness ve Age değişkenleri arasında
+
+> -  -0.082 ile Pregnancies ve SkinThickness değişkenleri arasındadır.
+
+
+Değişkenlerin dağılımlarını inceleyelim 
+
+Hedef değişken Outcome'ın açıklayıcı değişkenlere karşı dağılım grafiklerini oluşturalım ve yorumlayalım:
+
+```{r message=FALSE, warning=FALSE}
+diabetes_data %>%
+gather(-Outcome, key = "var", value = "value") %>%
+filter(var != "chas") %>%
+ggplot(aes(x = value, y = Outcome)) +
+geom_point() +
+stat_smooth() +
+facet_wrap(~ var, scales = "free") +
+theme_get()
+```
+
+Hedef değişken Outocome ile açıklayıcı değişkenler arasında doğrusal olmayan bir yapı olduğu görülmektedir.
+
+* Açıklayıcı değişkenler için boxplot çizdirelim ve yorumlayalım:
+
+```{r}
+diabetes_data %>% 
+gather(-Outcome, key = "var", value = "value") %>%
+filter(var != "chas") %>%
+ggplot(aes(x = '',y = value)) +
+geom_boxplot(fill = '#FF00FF', color="black", size=1) +
+facet_wrap(~ var, scales = "free") +
+theme_get()
+```
+
+Kutu çizimleri incelendiğinde, verilerde bazı aykırı değerlerin olduğu görülür.
+
+* Son olarak açıklayıcı değişkenlerin histogramını çizdirirsek:
+
+```{r message=FALSE, warning=FALSE}
+diabetes_data %>%
+gather(-Outcome, key = "var", value = "value") %>%
+filter(var != "chas") %>%
+ggplot(aes(x = value)) +
+geom_histogram(fill="darkred") +
+facet_wrap(~ var, scales = "free") +
+theme_bw()
+```
+
+
+* Pregnancies ve SkinThickness değişkenlerinin aralarında hiçbir veri olmadan ayrılmış iki farklı tepe noktası vardır ve bu durum karışım dağılımının (mixture distribution) varlığına işaret eder.
+* Ayrıca burada çoğu değişkenin dağılımlarının çarpık olduğu gözlemlenmiştir.
+
+### 4.ADIM: Veriyi Hazırlama
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+ddata <- read_csv("/Users/elif/Desktop/diabetes.csv") %>% 
+  na.omit() %>% 
+  mutate(Outcome = ifelse(Outcome == 0,0,1),
+         Outcome = factor(Outcome))
+```
+
+### 5.ADIM: Veriyi Normalleştirme
+
+```{r}
+scale01 <- function(x){
+(x - min(x)) / (max(x) - min(x))
+}
+ddata_Scaled <- ddata  %>%
+mutate(Pregnancies = scale01(Pregnancies),
+Glucose = scale01(Glucose),
+BloodPressure = scale01(BloodPressure),
+SkinThickness = scale01(SkinThickness),
+Insulin = scale01(Insulin),
+BMI = scale01(BMI),
+DiabetesPedigreeFunction = scale01(DiabetesPedigreeFunction),
+Age= scale01(Age),
+Outcome = as.numeric(Outcome)-1)
+head(ddata_Scaled)
+```
+
+Neuralnet paketi ile kullanılan sınıflandırma amaçlı YSA yanıt özelliğinin, bu örnekte Outcome, bir Boolean
+(yalnızca TRUE ve FALSE değişkenlerini alabilen) özelliği olarak girilmesini gerektirir. Bu özellik bu doğrultuda
+değiştirilir.
+
+```{r}
+ddata_adj <- ddata_Scaled %>%
+mutate(Outcome = as.integer(Outcome) - 1,
+Outcome = ifelse(Outcome == 1, TRUE, FALSE))
+head(ddata_adj)
+```
+
+
+### 6.ADIM: Yapay Sinir Ağı Modeli Oluşturma
+
+Tek gizli tabaka ve tek gizli tabaka birim içeren YSA yapısı oluşturulsun.
+Neuralnet paketi varsayılan (default) olarak başlangıç ağırlıklarını rastgele belirlemektedir.
+Yeniden üretebilirliği sağlamak adına set.seed() komutu kullanarak başlangıç ağırlıkları sabitlenir.
+Eklenen üç argüman ise;
+
+> *linear.output*,problemin bir sınıflandırma problemi olduğunun göstergesidir ve modelin Outcome yanıt değişkeninin sınıfının 1 olması olasılığı şeklinde yorumlanacak çıktıları ürettiği anlamını taşır.
+
+> *err.fct'yi* "ce",bir sınıflama problemi için kullanımı daha uygun ve regresyon amaçlı kullanılan YSA'larda hesaplanan SSE'den farklı olan çapraz entropi hata metriğinin kullanıldığını işaret eder.
+
+> *TRUE* olarak ayarlanan *olabilirlik* argümanı ise,*AIC* ve *BIC* ölçümlerinin hesaplanabilmesine olanak sağlar.
+
+```{r}
+set.seed(121519016)
+ddata_NN1 <- neuralnet(Outcome ~ Pregnancies + Glucose + BloodPressure 
+                       + SkinThickness + Insulin + BMI + 
+                         DiabetesPedigreeFunction + Age,
+data = ddata_adj,
+linear.output = FALSE,
+err.fct = 'ce',
+likelihood = TRUE)
+```
+
+```{r}
+plot(ddata_NN1,rep = "best")
+```
+
+Yapay Sinir Ağı için çizdirdiğimiz plota baktığımızda Error: 0.00819 ve Steps: 64 olarak çıkmıştır.
+
+Bu grafikte görülen hata,ddata veri setindeki gözlemlerin her biri için tahmin edilen ve gözlemlenen çıktı arasındaki farkların bir ölçüsü olan çapraz entropi hatasıdır.
+AIC,BIC ve hata ölçümlerini hesaplayalım:
+
+```{r}
+ddata_NN1_Train_Error <- ddata_NN1$result.matrix[1,1]
+paste("CE Error: ", round(ddata_NN1_Train_Error, 3))
+```
+```{r}
+ddata_NN1_AIC <- ddata_NN1$result.matrix[4,1]
+paste("AIC: ", round(ddata_NN1_AIC,3))
+```
+```{r}
+ddata_NN1_BIC <- ddata_NN1$result.matrix[5,1]
+paste("BIC: ", round(ddata_NN1_BIC, 3))
+```
+
+### SINIFLANDIRMA HİPERPARAMETRELERİ
+
+
+```{r}
+set.seed(121519016)
+#2-Gizli Katmanlar, Katman-1 2-nöron, Katman-2, 1-nöron
+ddata_NN2 <- neuralnet(Outcome ~ Pregnancies + Glucose 
+                       + BloodPressure + SkinThickness + Insulin + BMI + 
+                         DiabetesPedigreeFunction + Age,
+data = ddata_adj,
+linear.output = FALSE,
+err.fct = 'ce',
+likelihood =
+TRUE, hidden = c(2,1))
+plot(ddata_NN2, rep = 'best')
+```
+
+'[](/Users/elif/Desktop/16.jpg)
+
+Yapay Sinir Ağı için çizdirdiğimiz plota baktığımızda Error: 0.008521 ve Steps: 53 olarak çıkmıştır.
+
+```{r}
+# 2-Gizli Katmanlar, Katman-1 2-nöron, Katman-2, 2-nöron
+set.seed(121519016)
+ddata_NN3 <- neuralnet(Outcome ~ Pregnancies + Glucose + 
+                         BloodPressure + SkinThickness + 
+                         Insulin + BMI + DiabetesPedigreeFunction + Age, 
+data = ddata_adj,
+linear.output = FALSE,
+err.fct = 'ce',
+likelihood = TRUE,
+hidden = c(2,2))
+plot(ddata_NN3, rep = 'best')
+```
+
+'[](/Users/elif/Desktop/12.jpg)
+
+Yapay Sinir Ağı için çizdirdiğimiz plota baktığımızda Error: 0.009135 ve Steps: 34 olarak çıkmıştır.
+
+```{r}
+# 2-Gizli Katmanlar, Katman-1 1-nöron, Katman-2, 2-nöron
+set.seed(121519016)
+ddata_NN4 <- neuralnet(Outcome ~ Pregnancies + Glucose + 
+                         BloodPressure + SkinThickness + 
+                         Insulin + BMI + DiabetesPedigreeFunction + Age, 
+linear.output = FALSE,
+data = ddata_adj,
+err.fct = 'ce',
+likelihood = TRUE,
+hidden = c(1,2))
+plot(ddata_NN4, rep = 'best')
+```
+
+'[](/Users/elif/Desktop/13.jpg)
+
+Yapay Sinir Ağı için çizdirdiğimiz plota baktığımızda Error: 0.008734 ve Steps: 40 olarak çıkmıştır.
+
+### Sonuçları bar grafiği üzerinde gösterelim:
+
+```{r}
+Class_NN_ICs <- tibble('YSA' = rep(c("NN1", "NN2", "NN3", "NN4"), each = 3),
+'Metrik' = rep(c('AIC', 'BIC', 'ce Error * 100'), length.out = 12),
+'Değer' = c(ddata_NN1$result.matrix[4,1], ddata_NN1$result.matrix[5,1],
+1000*ddata_NN1$result.matrix[1,1], ddata_NN2$result.matrix[4,1],
+ddata_NN2$result.matrix[5,1], 1000*ddata_NN2$result.matrix[1,1],
+ddata_NN3$result.matrix[4,1], ddata_NN3$result.matrix[5,1],
+1000*ddata_NN3$result.matrix[1,1], ddata_NN4$result.matrix[4,1],
+ddata_NN4$result.matrix[5,1], 1000*ddata_NN4$result.matrix[1,1]))
+```
+
+```{r message=FALSE, warning=FALSE}
+Class_NN_ICs %>%
+ggplot(aes(YSA, Değer, fill = Metrik)) +
+geom_col(position = 'dodge') +
+ggtitle("YSA'lara iliskin AIC, BIC, and Cross-Entropy Error", 
+        "Not: Goruntulenen ce-Error gercek degerinin 100 katidir")
+```
+
+Grafik üzerinden modelleri kıyaslarsak en büyük AIC ve BIC değerine sahip olan modelimiz NN3 olmuştur.En az AIC ve BIC değerine ise NN1 modeli sahiptir.Dolayısıyla NN1 modeli incelediğimiz dört model arasında en iyi sonucu veren model olacaktır.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
