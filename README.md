@@ -1,12 +1,12 @@
-# DİYABET HASTALIĞI  
+# DİYABET HASTALIĞI 🏥  
 
 Yapay sinir ağları ile kaggle sitesinden yararlandığımız "Predict Diabetes" veri seti üzerine çalışmalar gerçekleştirilmiştir.
+
+Veri setinin amacı, bir hastanın diyabet hastası olup olmadığını veri kümesinde yer alan belirli tanılama ölçümlerine dayanarak tanısal olarak tahmin etmektir.
 
 ### VERİ SETİ AÇIKLAMASI:
 
 Bu veri seti aslen Ulusal Diyabet ve Sindirim ve Böbrek Hastalıkları Enstitüsü'nden alınmıştır.
-
-Veri setinin amacı, bir hastanın diyabet hastası olup olmadığını veri kümesinde yer alan belirli tanılama ölçümlerine dayanarak tanısal olarak tahmin etmektir.
 
 Yaygın olarak diyabet olarak adlandırılan diabetes mellitus (DM), uzun bir süre boyunca yüksek kan şekeri seviyelerinin olduğu bir grup metabolik bozukluktur. Tip 1 diyabet, pankreasın yeterli insülin üretememesinden kaynaklanır. Tip 2 diyabet, hücrelerin insüline düzgün yanıt vermediği bir durum olan insülin direnci ile başlar. 2015 itibariyle, dünya çapında tahmini 415 milyon insanda diyabet vardı ve vakaların yaklaşık % 90'ını tip 2 diyabet oluşturuyordu. Bu, yetişkin nüfusun% 8,3'ünü temsil etmektedir.
 
